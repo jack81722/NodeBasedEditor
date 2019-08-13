@@ -2,19 +2,45 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System;
 
 public class Node
 {
     public Rect rect;
     public string title;
     public bool isDragged;
+    public bool isSelected;
+
+    public ConnectionPoint inPoint, outPoint;
 
     public GUIStyle style;
+    public GUIStyle defaultNodeStyle;
+    public GUIStyle selectedNodeStyle;
 
-    public Node(Vector2 position, float width, float height, GUIStyle nodeStyle)
+    public Action<Node> OnRemoveNode;
+
+    public Node(
+        Vector2 position,
+        float width,
+        float height,
+        GUIStyle nodeStyle,
+        GUIStyle selectedStyle,
+        GUIStyle inPointStyle,
+        GUIStyle outPointStyle,
+        Action<ConnectionPoint> OnClickInPoint,
+        Action<ConnectionPoint> OnClickOutPoint,
+        Action<Node> OnClickRemoveNode)
     {
         rect = new Rect(position.x, position.y, width, height);
         style = nodeStyle;
+
+        inPoint = new ConnectionPoint(this, ConnectionPointType.In, inPointStyle, OnClickInPoint);
+        outPoint = new ConnectionPoint(this, ConnectionPointType.Out, outPointStyle, OnClickOutPoint);
+
+        defaultNodeStyle = nodeStyle;
+        selectedNodeStyle = selectedStyle;
+
+        OnRemoveNode = OnClickRemoveNode;
     }
 
     public void Drag(Vector2 delta)
@@ -24,6 +50,8 @@ public class Node
 
     public void Draw()
     {
+        inPoint.Draw();
+        outPoint.Draw();
         GUI.Box(rect, title, style);
     }
 
@@ -38,11 +66,21 @@ public class Node
                     {
                         isDragged = true;
                         GUI.changed = true;
+                        isSelected = true;
+                        style = selectedNodeStyle;
                     }
                     else
                     {
                         GUI.changed = true;
+                        isSelected = false;
+                        style = defaultNodeStyle;
                     }
+                }
+                
+                if(e.button == 1 && isSelected)
+                {
+                    ProcessContextMenu();
+                    e.Use();
                 }
                 break;
             case EventType.MouseUp:
@@ -58,5 +96,17 @@ public class Node
                 break;
         }
         return false;
+    }
+
+    private void ProcessContextMenu()
+    {
+        GenericMenu genericMenu = new GenericMenu();
+        genericMenu.AddItem(new GUIContent("Remove node"), false, OnClickRemoveNode);
+        genericMenu.ShowAsContext();
+    }
+
+    private void OnClickRemoveNode()
+    {
+        OnRemoveNode?.Invoke(this);
     }
 }
