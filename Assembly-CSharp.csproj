@@ -62,6 +62,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\IdentityPool.cs" />
     <Compile Include="Assets\Node Based Editor\Connection.cs" />
     <Compile Include="Assets\Node Based Editor\ConnectionPoint.cs" />
     <Compile Include="Assets\Node Based Editor\Node.cs" />

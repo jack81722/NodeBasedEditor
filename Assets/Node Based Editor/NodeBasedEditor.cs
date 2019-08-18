@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System;
+using System.IO;
 
 public class NodeBasedEditor : EditorWindow
 {
+    private IdentityPool nodeIdPool;
     private List<Node> nodes;
     private List<Connection> connections;
 
@@ -24,11 +27,14 @@ public class NodeBasedEditor : EditorWindow
     {
         NodeBasedEditor window = GetWindow<NodeBasedEditor>();
         window.titleContent = new GUIContent("Node Based Editor");
-        
     }
 
     private void OnEnable()
     {
+        nodeIdPool = new IdentityPool();
+        nodes = new List<Node>();
+        connections = new List<Connection>();
+
         nodeStyle = new GUIStyle();
         nodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
         nodeStyle.border = new RectOffset(12, 12, 12, 12);
@@ -48,8 +54,13 @@ public class NodeBasedEditor : EditorWindow
         outPointStyle.border = new RectOffset(4, 4, 12, 12);
     }
 
+    #region GUI methods
     private void OnGUI()
     {
+        GUILayout.BeginHorizontal(EditorStyles.toolbar);
+        DrawToolbar();
+        GUILayout.EndHorizontal();
+
         DrawGrid(20, 0.2f, Color.gray);
         DrawGrid(100, 0.4f, Color.gray);
 
@@ -60,13 +71,37 @@ public class NodeBasedEditor : EditorWindow
 
         ProcessNodeEvents(Event.current);
         ProcessEvents(Event.current);
+
         if (GUI.changed)
             Repaint();
     }
 
+    protected virtual void DrawToolbar()
+    {
+        GUILayout.FlexibleSpace();
+        EditorGUILayout.LabelField("Position:" + offset.ToString(), EditorStyles.label);
+        if (GUILayout.Button("Save", EditorStyles.toolbarButton))
+        {
+            OpenSaveDialog();
+        }
+        if (GUILayout.Button("Load", EditorStyles.toolbarButton))
+        {
+            OpenLoadDialog();
+        }
+        if (GUILayout.Button("Reset", EditorStyles.toolbarButton))
+        {
+            BackToCenter();
+        }
+        if (GUILayout.Button("Clear", EditorStyles.toolbarButton))
+        {
+            Clear();
+        }
+    }
+
     private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor)
     {
-        int widthDivs = Mathf.CeilToInt(position.width / gridSpacing);
+        float tb = 16f;
+        int widthDivs = Mathf.CeilToInt(position.width / gridSpacing) + 1;
         int heightDivs = Mathf.CeilToInt(position.height / gridSpacing);
 
         Handles.BeginGUI();
@@ -77,12 +112,13 @@ public class NodeBasedEditor : EditorWindow
 
         for (int i = 0; i < widthDivs; i++)
         {
-            Handles.DrawLine(new Vector3(gridSpacing * i, -gridSpacing, 0) + newOffset, new Vector3(gridSpacing * i, position.height, 0f) + newOffset);
+            Handles.DrawLine(new Vector3(gridSpacing * i + newOffset.x, tb, 0), new Vector3(gridSpacing * i, position.height, 0f) + newOffset);
         }
 
         for (int j = 0; j < heightDivs; j++)
-        {
-            Handles.DrawLine(new Vector3(-gridSpacing, gridSpacing * j, 0) + newOffset, new Vector3(position.width, gridSpacing * j, 0f) + newOffset);
+        {   
+            if (gridSpacing * j + newOffset.y > tb)
+                Handles.DrawLine(new Vector3(-gridSpacing, gridSpacing * j, 0) + newOffset, new Vector3(position.width, gridSpacing * j + newOffset.y, 0f));
         }
 
         Handles.color = Color.white;
@@ -141,6 +177,21 @@ public class NodeBasedEditor : EditorWindow
             }
         }
     }
+    #endregion
+
+    private void OnDrag(Vector2 delta)
+    {
+        drag = delta;
+        if (nodes != null)
+        {
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                nodes[i].Drag(delta);
+            }
+        }
+
+        GUI.changed = true;
+    }
 
     private void ProcessEvents(Event e)
     {
@@ -162,20 +213,6 @@ public class NodeBasedEditor : EditorWindow
                 }
                 break;
         }
-    }
-
-    private void OnDrag(Vector2 delta)
-    {
-        drag = delta;
-        if(nodes != null)
-        {
-            for(int i = 0; i < nodes.Count; i++)
-            {
-                nodes[i].Drag(delta);
-            }
-        }
-
-        GUI.changed = true;
     }
 
     private void ProcessNodeEvents(Event e)
@@ -200,11 +237,31 @@ public class NodeBasedEditor : EditorWindow
         genericMenu.ShowAsContext();
     }
 
+    #region OnClick events
     private void OnClickAddNode(Vector2 mousePosition)
     {
-        if (nodes == null)
-            nodes = new List<Node>();
-        nodes.Add(new Node(mousePosition, 200, 50, nodeStyle, selectedNodeStyle, inPointStyle, outPointStyle, OnClickInPoint, OnClickOutPoint, OnClickRemoveNode));
+        Node newNode = new Node(
+                nodeIdPool.NewID(),
+                mousePosition,
+                200,
+                50,
+                nodeStyle,
+                selectedNodeStyle,
+                inPointStyle,
+                outPointStyle,
+                OnClickInPoint,
+                OnClickOutPoint,
+                OnClickRemoveConnectionPoint,
+                OnClickRemoveNode);
+        nodes.Add(newNode);
+    }
+
+    private void OnClickRemoveConnectionPoint(ConnectionPoint point)
+    {
+        if (point != null)
+        {
+            connections.RemoveAll(conn => conn.inPoint == point || conn.outPoint == point);
+        }
     }
 
     private void OnClickInPoint(ConnectionPoint inPoint)
@@ -250,7 +307,7 @@ public class NodeBasedEditor : EditorWindow
             List<Connection> connectionsToRemove = new List<Connection>();
             for(int i = 0; i < connections.Count; i++)
             {
-                if(connections[i].inPoint == node.inPoint || connections[i].outPoint == node.outPoint)
+                if(node.inPoints.Contains(connections[i].inPoint) || node.outPoints.Contains(connections[i].outPoint))
                 {
                     connectionsToRemove.Add(connections[i]);
                 }
@@ -263,25 +320,112 @@ public class NodeBasedEditor : EditorWindow
 
             connectionsToRemove = null;
         }
+        //nodeIdPool.RecycleID(node.GetInstanceID());
         nodes.Remove(node);
-    }
-
-    private void CreateConnection()
-    {
-        if (connections == null)
-            connections = new List<Connection>();
-
-        connections.Add(new Connection(selectedInPoint, selectedOutPoint, OnClickRemoveConnection));
     }
 
     private void OnClickRemoveConnection(Connection connection)
     {
         connections.Remove(connection);
     }
+    #endregion
+
+    private void CreateConnection()
+    {
+        connections.Add(new Connection(selectedInPoint, selectedOutPoint, OnClickRemoveConnection));
+    }
 
     private void ClearConnectionSelection()
     {
         selectedInPoint = null;
         selectedOutPoint = null;
+    }
+
+    private void BackToCenter()
+    {
+        offset = Vector2.zero;
+    }
+
+    private void Clear()
+    {   
+        nodes.Clear();
+        nodeIdPool.Reset();
+        connections.Clear();
+        BackToCenter();
+    }
+
+    public void OpenSaveDialog()
+    {
+        string path = EditorUtility.SaveFilePanel("Save node state", Application.dataPath, "NewNodeState", "nstat");
+        if (!string.IsNullOrEmpty(path))
+        {
+            using (BinaryWriter writer =
+                new BinaryWriter(File.Open(path, FileMode.Create)))
+            {
+                writer.Write(0);
+                Save(writer);
+            }
+        }
+    }
+
+    public void OpenLoadDialog()
+    {
+        string path = EditorUtility.OpenFilePanel("Load node state", Application.dataPath, "nstat");
+        if (!string.IsNullOrEmpty(path))
+        {
+            using (BinaryReader reader =
+                new BinaryReader(File.OpenRead(path)))
+            {
+                int header = reader.ReadInt32();
+                Load(reader);
+            }
+        }
+    }
+
+    public void Save(BinaryWriter writer)
+    {
+        writer.Write(nodes.Count);
+        for(int i = 0; i < nodes.Count; i++)
+        {
+            nodes[i].Save(writer);
+        }
+        writer.Write(connections.Count);
+        for(int i = 0; i < connections.Count; i++)
+        {
+            connections[i].Save(writer);
+        }
+    }
+
+    public void Load(BinaryReader reader)
+    {
+        Clear();
+
+        int nodesCount = reader.ReadInt32();
+        for(int i = 0; i < nodesCount; i++)
+        {
+            nodes.Add(
+                new Node(
+                nodeStyle,
+                selectedNodeStyle,
+                inPointStyle,
+                outPointStyle,
+                OnClickInPoint,
+                OnClickOutPoint,
+                OnClickRemoveConnectionPoint,
+                OnClickRemoveNode));
+            nodes[i].Load(reader);
+            nodeIdPool.SetUsedId(nodes[i].GetInstanceID());
+        }
+        int connCount = reader.ReadInt32();
+        for(int i = 0; i < connCount; i++)
+        {
+            int outNodeId = reader.ReadInt32();
+            int outPointId = reader.ReadInt32();
+            Node outNode = nodes.Find(n => n.GetInstanceID() == outNodeId);
+            int inNodeId = reader.ReadInt32();
+            int inPointId = reader.ReadInt32();
+            Node inNode = nodes.Find(n => n.GetInstanceID() == inNodeId);
+            connections.Add(new Connection(inNode.inPoints[inPointId], outNode.outPoints[outPointId], OnClickRemoveConnection));
+        }
     }
 }

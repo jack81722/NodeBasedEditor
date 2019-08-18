@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -33,4 +34,15 @@ public class Connection
             OnClickRemoveConnection?.Invoke(this);
         }
     }
+
+    public void Save(BinaryWriter writer)
+    {
+        writer.Write(outPoint.node.GetInstanceID());
+        writer.Write(outPoint.node.outPoints.IndexOf(outPoint));
+        writer.Write(inPoint.node.GetInstanceID());
+        writer.Write(inPoint.node.inPoints.IndexOf(inPoint));
+        //Debug.Log($"Save connection : ({outPoint.node.GetInstanceID()}, {outPoint.node.outPoints.IndexOf(outPoint)}) - ({inPoint.node.GetInstanceID()},{inPoint.node.inPoints.IndexOf(inPoint)})");
+    }
+
+    
 }
