@@ -16,6 +16,8 @@ public class NodeBasedEditor : EditorWindow
     private GUIStyle inPointStyle;
     private GUIStyle outPointStyle;
 
+    private Node selectedNode;
+    private Node copiedNode;
     private ConnectionPoint selectedInPoint;
     private ConnectionPoint selectedOutPoint;
 
@@ -212,12 +214,39 @@ public class NodeBasedEditor : EditorWindow
                     OnDrag(e.delta);
                 }
                 break;
+
+            case EventType.KeyDown:
+                if(e.keyCode == KeyCode.Delete)
+                {
+                    OnClickRemoveNode(selectedNode);
+                    selectedNode = null;
+                    e.Use();
+                }
+                break;
+
+            case EventType.ValidateCommand:
+                if (e.commandName == "Copy" || e.commandName == "Paste")
+                {   
+                    e.Use();
+                }
+                break;
+
+            case EventType.ExecuteCommand:
+                if(e.commandName == "Copy")
+                {
+                    OnClickCopyNode(selectedNode);
+                }
+                else if(e.commandName == "Paste")
+                {
+                    PasteNode(new Vector2(50, 50));
+                }
+                break;
         }
     }
 
     private void ProcessNodeEvents(Event e)
     {
-        if(nodes != null)
+        if (nodes != null)
         {
             for (int i = nodes.Count - 1; i >= 0; i--)
             {
@@ -234,6 +263,7 @@ public class NodeBasedEditor : EditorWindow
     {
         GenericMenu genericMenu = new GenericMenu();
         genericMenu.AddItem(new GUIContent("Add node"), false, () => OnClickAddNode(mousePosition));
+        genericMenu.AddItem(new GUIContent("Paste"), false, () => PasteNode(mousePosition));
         genericMenu.ShowAsContext();
     }
 
@@ -249,6 +279,9 @@ public class NodeBasedEditor : EditorWindow
                 selectedNodeStyle,
                 inPointStyle,
                 outPointStyle,
+                OnClickSelectNode,
+                OnClickCancelSelectNode,
+                OnClickCopyNode,
                 OnClickInPoint,
                 OnClickOutPoint,
                 OnClickRemoveConnectionPoint,
@@ -328,7 +361,48 @@ public class NodeBasedEditor : EditorWindow
     {
         connections.Remove(connection);
     }
+
+    private void OnClickSelectNode(Node node)
+    {
+        selectedNode = node;
+    }
+
+    private void OnClickCancelSelectNode(Node node)
+    {
+        selectedNode = null;
+    }
+
+    private void OnClickCopyNode(Node node)
+    {
+        copiedNode = node;
+    }
     #endregion
+
+    private void PasteNode(Vector2 position)
+    {
+        if(copiedNode != null)
+        {
+            Node pasted = new Node(
+                nodeIdPool.NewID(),
+                position,
+                200,
+                50,
+                nodeStyle,
+                selectedNodeStyle,
+                inPointStyle,
+                outPointStyle,
+                OnClickSelectNode,
+                OnClickCancelSelectNode,
+                OnClickCopyNode,
+                OnClickInPoint,
+                OnClickOutPoint,
+                OnClickRemoveConnectionPoint,
+                OnClickRemoveNode);
+            pasted.AddInPoint(copiedNode.inPoints.Count);
+            pasted.AddOutPoint(copiedNode.outPoints.Count);
+            nodes.Add(pasted);
+        }
+    }
 
     private void CreateConnection()
     {
@@ -343,6 +417,11 @@ public class NodeBasedEditor : EditorWindow
 
     private void BackToCenter()
     {
+        Vector2 back = -offset;
+        for(int i = 0; i < nodes.Count; i++)
+        {
+            nodes[i].Drag(back);
+        }
         offset = Vector2.zero;
     }
 
@@ -354,6 +433,7 @@ public class NodeBasedEditor : EditorWindow
         BackToCenter();
     }
 
+    #region Save/Load methods
     public void OpenSaveDialog()
     {
         string path = EditorUtility.SaveFilePanel("Save node state", Application.dataPath, "NewNodeState", "nstat");
@@ -409,6 +489,9 @@ public class NodeBasedEditor : EditorWindow
                 selectedNodeStyle,
                 inPointStyle,
                 outPointStyle,
+                OnClickSelectNode,
+                OnClickCancelSelectNode,
+                OnClickCopyNode,
                 OnClickInPoint,
                 OnClickOutPoint,
                 OnClickRemoveConnectionPoint,
@@ -428,4 +511,5 @@ public class NodeBasedEditor : EditorWindow
             connections.Add(new Connection(inNode.inPoints[inPointId], outNode.outPoints[outPointId], OnClickRemoveConnection));
         }
     }
+    #endregion
 }

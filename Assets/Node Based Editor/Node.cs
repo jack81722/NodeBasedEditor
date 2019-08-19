@@ -12,6 +12,7 @@ public class Node
     public string title;
     public bool isDragged;
     public bool isSelected;
+    private Action<Node> onSelectNode, onCancelSelectNode, onCopyNode;
 
     public List<ConnectionPoint> inPoints;
     protected GUIStyle inPointStyle;
@@ -34,12 +35,19 @@ public class Node
         GUIStyle selectedStyle,
         GUIStyle inPointStyle,
         GUIStyle outPointStyle,
+        Action<Node> onSelectNode,
+        Action<Node> onCancelSelectNode,
+        Action<Node> onCopyNode,
         Action<ConnectionPoint> onClickInPoint,
         Action<ConnectionPoint> onClickOutPoint,
         Action<ConnectionPoint> onRemoveConnectionPoint,
         Action<Node> onClickRemoveNode)
     {
         style = nodeStyle;
+
+        this.onSelectNode = onSelectNode;
+        this.onCancelSelectNode = onCancelSelectNode;
+        this.onCopyNode = onCopyNode;
 
         inPoints = new List<ConnectionPoint>();
         this.inPointStyle = inPointStyle;
@@ -66,6 +74,9 @@ public class Node
         GUIStyle selectedStyle,
         GUIStyle inPointStyle,
         GUIStyle outPointStyle,
+        Action<Node> onSelectNode,
+        Action<Node> onCancelSelectNode,
+        Action<Node> onCopyNode,
         Action<ConnectionPoint> onClickInPoint,
         Action<ConnectionPoint> onClickOutPoint,
         Action<ConnectionPoint> onRemoveConnectionPoint,
@@ -74,6 +85,10 @@ public class Node
         nodeId = id;
         rect = new Rect(position.x, position.y, width, height);
         style = nodeStyle;
+
+        this.onSelectNode = onSelectNode;
+        this.onCancelSelectNode = onCancelSelectNode;
+        this.onCopyNode = onCopyNode;
 
         inPoints = new List<ConnectionPoint>();
         this.inPointStyle = inPointStyle;
@@ -128,12 +143,16 @@ public class Node
                         GUI.changed = true;
                         isSelected = true;
                         style = selectedNodeStyle;
+                        onSelectNode(this);
                     }
                     else
                     {
                         GUI.changed = true;
+                        if(isSelected)
+                            onCancelSelectNode(this);
                         isSelected = false;
                         style = defaultNodeStyle;
+                        
                     }
                 }
                 
@@ -158,20 +177,26 @@ public class Node
         return false;
     }
 
-    protected void AddOutPoint()
+    public void AddOutPoint(int count = 1)
     {
-        ConnectionPoint point = new ConnectionPoint(this, ConnectionPointType.Out, outPointStyle, onClickOutPoint, OnRemoveConnectionPoint);
-        point.offset.x = rect.width - 8f;
-        outPoints.Add(point);
+        for (int i = 0; i < count; i++)
+        {
+            ConnectionPoint point = new ConnectionPoint(this, ConnectionPointType.Out, outPointStyle, onClickOutPoint, OnRemoveConnectionPoint);
+            point.offset.x = rect.width - 8f;
+            outPoints.Add(point);
+        }
 
         LayoutConnectionPoints();
     }
 
-    protected void AddInPoint()
+    public void AddInPoint(int count = 1)
     {
-        ConnectionPoint point = new ConnectionPoint(this, ConnectionPointType.In, inPointStyle, onClickInPoint, OnRemoveConnectionPoint);
-        point.offset.x = -point.rect.width + 8f;
-        inPoints.Add(point);
+        for (int i = 0; i < count; i++)
+        {
+            ConnectionPoint point = new ConnectionPoint(this, ConnectionPointType.In, inPointStyle, onClickInPoint, OnRemoveConnectionPoint);
+            point.offset.x = -point.rect.width + 8f;
+            inPoints.Add(point);
+        }
 
         LayoutConnectionPoints();
     }
@@ -234,8 +259,10 @@ public class Node
     protected virtual void AddGenericItem(GenericMenu menu)
     {
         menu.AddItem(new GUIContent("Remove node"), false, OnClickRemoveNode);
-        menu.AddItem(new GUIContent("Add In Point"), false, AddInPoint);
-        menu.AddItem(new GUIContent("Add Out Point"), false, AddOutPoint);
+        menu.AddItem(new GUIContent("Add In Point"), false, () => AddInPoint());
+        menu.AddItem(new GUIContent("Add Out Point"), false, () => AddOutPoint());
+        
+        menu.AddItem(new GUIContent("Copy"), false, () => onCopyNode(this));
     }
 
     private void OnClickRemoveNode()
