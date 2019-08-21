@@ -75,6 +75,7 @@ namespace NodeEditor
             Action<ConnectionPoint> onRemoveConnectionPoint)
         {
             nodeId = id;
+            title = "Node " + id;
             rect = new Rect(position.x, position.y, width, height);
             style = nodeStyle;
 
@@ -102,9 +103,7 @@ namespace NodeEditor
 
         public void Draw()
         {
-            pos = new Vector2(rect.x + LayoutOffset.x, rect.y + LayoutOffset.y);
-            cursor = 0;
-            addHeight = 0;
+            LayoutSize = Vector2.zero;
             LayoutPosition = new Vector2(rect.x + LayoutOffset.x, rect.y + LayoutOffset.y);
             for (int i = 0; i < inPoints.Count; i++)
             {
@@ -116,123 +115,172 @@ namespace NodeEditor
             }
             GUI.Box(rect, "", style);
             DrawNode(LayoutPosition);
-            if(resizeFlag)
-            {
-                LayoutConnectionPoints();
-                resizeFlag = false;
-            }
+            //if(resizeFlag)
+            //{
+            //    LayoutConnectionPoints();
+            //    resizeFlag = false;
+            //}
         }
 
         private int titleCount = 1;
+        private void AddTitle()
+        {
+            titleCount++;
+        }
+
+        private void SubTitle()
+        {
+            if (titleCount > 1)
+                titleCount--;
+        }
 
         public virtual Vector2 DrawNode(Vector2 position)
         {
-            float height = 20f;
-            LayoutLabel(
-                new Rect(
-                    position.x,
-                    rect.y + rect.height / 2 - 10,
-                    rect.width - LayoutOffset.x * 2,
-                    height),
-                title,
-                titleStyle);
-            position.y += height;
-            if (resizeFlag)
-            {
-                LayoutConnectionPoints();
-                resizeFlag = false;
-            }
+            BeginHorizontal();
+            for (int i = 0; i < titleCount; i++)
+                LayoutLabel(title, titleStyle);
+            EndHorizontal();
+            BeginHorizontal();
+            LayoutButton("+", AddTitle);
+            LayoutButton("-", SubTitle);
+            EndHorizontal();
+            //float height = 20f;
+            //LayoutLabel(
+            //    new Rect(
+            //        position.x,
+            //        rect.y + rect.height / 2 - 10,
+            //        rect.width - LayoutOffset.x * 2,
+            //        height),
+            //    title,
+            //    titleStyle);
+            //position.y += height;
+            //if (resizeFlag)
+            //{
+            //    LayoutConnectionPoints();
+            //    resizeFlag = false;
+            //}
 
             return position;
         }
 
         #region Layout component methods
-        private bool resizeFlag = false;
-        private Rect stuffRect;
         protected Vector2 LayoutPosition;
         protected Vector2 LayoutOffset = new Vector2(10, 10);
+        private Vector2 LayoutSize;
 
-        protected void ResizeNodeAdaptively(Rect position)
+        private Vector2 currentPosition;
+
+        private Stack<List<Action<float, float>>> horizontalLayout = new Stack<List<Action<float, float>>>();
+
+        private void BeginHorizontal()
+        {   
+            horizontalLayout.Push(new List<Action<float, float>>());
+        }
+
+        private void EndHorizontal()
         {
-            if (position.x + position.width > rect.x + rect.width - LayoutOffset.x)
+            if (horizontalLayout.Count > 0)
             {
-                rect.width = position.x + position.width - rect.x + LayoutOffset.x;
-                resizeFlag = true;
-            }
-            if (position.y + position.height > rect.y + rect.height - LayoutOffset.y)
-            {
-                rect.height = position.y + position.height - rect.y + LayoutOffset.y;
-                resizeFlag = true;
+                var list = horizontalLayout.Pop();
+                float width = (rect.width - LayoutOffset.x * 2 - currentPosition.x) / list.Count;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    float x = LayoutPosition.x + currentPosition.x + width * i;
+                    list[i].Invoke(x, width);
+                }
+                NewLine();
             }
         }
 
-        private Vector2 pos;
-        private float cursor, addHeight;
-
-        protected void Layout()
+        protected void LayoutLabel(string text)
         {
-            addHeight = 20f;
-            GUI.Label(new Rect(pos.x + cursor, pos.y, rect.width -LayoutOffset.x * 2 - cursor, 20), "Text");
-            NewLine();
+            if (horizontalLayout.Count > 0)
+            {
+                horizontalLayout.Peek().Add((x, width) =>
+                {
+                    currentPosition.y = 20f;
+                    GUI.Label(new Rect(x, LayoutPosition.y, width, 20), text);
+                });
+            }
+            else
+            {
+                currentPosition.y = 20f;
+                GUI.Label(new Rect(LayoutPosition.x + currentPosition.x, LayoutPosition.y, rect.width - LayoutOffset.x * 2 - currentPosition.x, 20), text);
+                NewLine();
+            }
         }
 
-        protected void Layout(float x, float y, float width, float height)
+        protected void LayoutLabel(string text, GUIStyle style)
         {
-            x = x < 0 ? 0 : x;
-            height = height < 0 ? 0 : height;
-            addHeight = addHeight < y + height ? y + height : addHeight;
-            GUI.Label(new Rect(pos.x + cursor + x, pos.y + y, width, height), "Text");
-            cursor += x + width;
+            if (horizontalLayout.Count > 0)
+            {
+                horizontalLayout.Peek().Add((x, width) =>
+                {
+                    currentPosition.y = 20f;
+                    GUI.Label(new Rect(x, LayoutPosition.y, width, 20), text, style);
+                });
+            }
+            else
+            {
+                currentPosition.y = 20f;
+                GUI.Label(new Rect(LayoutPosition.x + currentPosition.x, LayoutPosition.y, rect.width - LayoutOffset.x * 2 - currentPosition.x, 20), text, style);
+                NewLine();
+            }
+        }
+
+        protected void LayoutButton(string text, Action action)
+        {
+            if (horizontalLayout.Count > 0)
+            {
+                horizontalLayout.Peek().Add((x, width) =>
+                {
+                    currentPosition.y = 20f;
+                    if (GUI.Button(new Rect(x, LayoutPosition.y, width, 20), text))
+                        action?.Invoke();
+                });
+            }
+            else
+            {
+                currentPosition.y = 20f;
+                if(GUI.Button(new Rect(LayoutPosition.x + currentPosition.x, LayoutPosition.y, rect.width - LayoutOffset.x * 2 - currentPosition.x, 20), text))
+                    action?.Invoke();
+                NewLine();
+            }
+        }
+
+        protected void LayoutButton(string text, Action action, GUIStyle style)
+        {
+            if (horizontalLayout.Count > 0)
+            {
+                horizontalLayout.Peek().Add((x, width) =>
+                {
+                    currentPosition.y = 20f;
+                    if (GUI.Button(new Rect(x, LayoutPosition.y, width, 20), text, style))
+                        action?.Invoke();
+                });
+            }
+            else
+            {
+                currentPosition.y = 20f;
+                if (GUI.Button(new Rect(LayoutPosition.x + currentPosition.x, LayoutPosition.y, rect.width - LayoutOffset.x * 2 - currentPosition.x, 20), text, style))
+                    action?.Invoke();
+                NewLine();
+            }
         }
 
         protected void NewLine()
         {
-            pos = new Vector2(rect.x + LayoutOffset.x, pos.y + LayoutOffset.y + addHeight);
-            cursor = 0;
-            addHeight = 0;
+            LayoutPosition = new Vector2(rect.x + LayoutOffset.x, LayoutPosition.y + currentPosition.y);
+            LayoutSize.y += currentPosition.y;
+            float totalSize = LayoutSize.y + LayoutOffset.y * 2;
+            if ((totalSize > rect.height && totalSize > connectionPointHeight) || (connectionPointHeight < totalSize && totalSize < rect.height))
+            {
+                rect.height = totalSize;
+                LayoutConnectionPoints();
+            }
+            currentPosition = Vector2.zero;
         }
 
-        protected void LayoutLabel(Rect position, string text)
-        {
-            ResizeNodeAdaptively(position);
-            GUI.Label(position, text);
-        }
-
-        protected void LayoutLabel(Rect position, string text, GUIStyle style)
-        {
-            ResizeNodeAdaptively(position);
-            GUI.Label(position, text, style);
-        }
-
-        protected bool LayoutButton(Rect position, string text)
-        {
-            ResizeNodeAdaptively(position);
-            return GUI.Button(position, text);
-        }
-
-        protected bool LayoutButton(Rect position, string text, GUIStyle style)
-        {
-            ResizeNodeAdaptively(position);
-            return GUI.Button(position, text, style);
-        }
-
-        protected int LayoutPopup(Rect position, int selectedIndex, string[] options)
-        {
-            ResizeNodeAdaptively(position);
-            return EditorGUI.Popup(position, selectedIndex, options);
-        }
-
-        protected int LayoutIntField(Rect position, int value)
-        {
-            ResizeNodeAdaptively(position);
-            return EditorGUI.IntField(position, value);
-        }
-
-        protected float LayoutFloatField(Rect position, float value)
-        {
-            ResizeNodeAdaptively(position);
-            return EditorGUI.FloatField(position, value);
-        }
         #endregion
 
         public bool ProcessEvents(Event e)
@@ -319,6 +367,7 @@ namespace NodeEditor
             LayoutConnectionPoints();
         }
 
+        private float connectionPointHeight;
         protected void LayoutConnectionPoints()
         {
             float heightOfPoint = 30f;
@@ -326,9 +375,9 @@ namespace NodeEditor
             int maxPointNum = Mathf.Max(inPoints.Count, outPoints.Count);
             if (maxPointNum > 0)
             {
-                float totalHeight = maxPointNum * heightOfPoint + (maxPointNum + 1) * interval;
-                if(totalHeight > rect.height)
-                    rect.height = totalHeight + LayoutOffset.y * 2;
+                connectionPointHeight = maxPointNum * heightOfPoint + (maxPointNum + 1) * interval;
+                if(connectionPointHeight > rect.height)
+                    rect.height = connectionPointHeight + LayoutOffset.y * 2;
 
                 LayoutConnectionPointList(inPoints, rect.height);
                 LayoutConnectionPointList(outPoints, rect.height);

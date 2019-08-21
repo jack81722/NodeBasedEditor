@@ -27,12 +27,12 @@ namespace NodeEditor
         protected Vector2 offset;
         protected Vector2 drag;
 
-        //[MenuItem("Window/Node Based Editor")]
-        //private static void OpenWindow()
-        //{
-        //    NodeBasedEditor window = GetWindow<NodeBasedEditor>();
-        //    window.titleContent = new GUIContent("Node Based Editor");
-        //}
+        [MenuItem("Window/Node Based Editor")]
+        private static void OpenWindow()
+        {
+            NodeBasedEditor window = GetWindow<NodeBasedEditor>();
+            window.titleContent = new GUIContent("Node Based Editor");
+        }
 
         private void OnEnable()
         {
@@ -290,6 +290,7 @@ namespace NodeEditor
         protected virtual void AddContextMenuItem(GenericMenu menu, Vector2 mousePosition)
         {
             menu.AddItem(new GUIContent("Add node"), false, () => OnClickAddNode(mousePosition));
+            menu.AddItem(new GUIContent("Add auto node"), false, () => AddAutoNode(mousePosition));
             menu.AddItem(new GUIContent("Paste"), false, () => PasteNode(mousePosition));
         }
 
@@ -556,6 +557,24 @@ namespace NodeEditor
             }
         }
         #endregion
+
+        private void AddAutoNode(Vector2 position)
+        {
+            AutoAddConnectionPointNode node = new AutoAddConnectionPointNode(
+                    nodeIdPool.NewID(),
+                    position,
+                    200,
+                    50,
+                    nodeStyle,
+                    selectedNodeStyle,
+                    inPointStyle,
+                    outPointStyle,
+                    OnClickInPoint,
+                    OnClickOutPoint,
+                    OnClickRemoveConnectionPoint);
+            OnCreateNode(node);
+            nodes.Add(node);
+        }
 
         public virtual Node CreateNode(
             GUIStyle nodeStyle,
