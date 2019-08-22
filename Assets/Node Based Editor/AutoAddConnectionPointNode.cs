@@ -65,6 +65,8 @@ public class AutoAddConnectionPointNode : Node
     }
 
     public AutoAddConnectionPointNode(
+            int minInPointNum,
+            int minOutPointNum,
             int maxInPointNum,
             int maxOutPointNum,
             GUIStyle nodeStyle,
@@ -83,6 +85,8 @@ public class AutoAddConnectionPointNode : Node
             onClickOutPoint,
             onRemoveConnectionPoint)
     {
+        this.minInPointNum = minInPointNum;
+        this.minOutPointNum = minOutPointNum;
         this.maxInPointNum = maxInPointNum;
         this.maxOutPointNum = maxOutPointNum;
         AddInPoint();
@@ -94,6 +98,8 @@ public class AutoAddConnectionPointNode : Node
             Vector2 position,
             float width,
             float height,
+            int minInPointNum,
+            int minOutPointNum,
             int maxInPointNum,
             int maxOutPointNum,
             GUIStyle nodeStyle,
@@ -116,13 +122,22 @@ public class AutoAddConnectionPointNode : Node
             onClickOutPoint,
             onRemoveConnectionPoint)
     {
+        this.minInPointNum = minInPointNum;
+        this.minOutPointNum = minOutPointNum;
         this.maxInPointNum = maxInPointNum;
         this.maxOutPointNum = maxOutPointNum;
-        AddInPoint();
-        AddOutPoint();
+        if(minInPointNum > 0)
+            AddInPoint();
+        if(minOutPointNum > 0)
+            AddOutPoint();
     }
 
     #endregion
+
+    public override void OnCreateConnectionPoint(ConnectionPoint point)
+    {
+        point.MaxConnectionNum = 1;
+    }
 
     public override void AddInPoint(int count = 1)
     {
