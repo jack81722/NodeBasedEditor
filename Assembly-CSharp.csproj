@@ -2,8 +2,6 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
-    <CscToolPath>C:\Program Files\Unity\Hub\Editor\2019.1.9f1\Editor\Data\Tools\RoslynScripts</CscToolPath>
-    <CscToolExe>unity_csc.bat</CscToolExe>
   </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -54,6 +52,9 @@
     <UnityVersion>2019.1.9f1</UnityVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Analyzer Include="C:\Program Files (x86)\Microsoft Visual Studio Tools for Unity\16.0\Analyzers\Microsoft.Unity.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="UnityEngine">
       <HintPath>C:\Program Files\Unity\Hub\Editor\2019.1.9f1\Editor\Data\Managed/UnityEngine/UnityEngine.dll</HintPath>
     </Reference>
@@ -65,8 +66,50 @@
     <Compile Include="Assets\IdentityPool.cs" />
     <Compile Include="Assets\Node Based Editor\Connection.cs" />
     <Compile Include="Assets\Node Based Editor\ConnectionPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\DigitConvert.cs" />
+    <Compile Include="Assets\Node Based Editor\ENodeType.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\DigitConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\EventConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\FloatConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\IntConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\ObjectConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\QuaternionConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\Vector2ConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\Vector3ConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericConnectPoint\Vector4ConnectPoint.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\ClampNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\CosNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\DeltaTimeNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\DistanceNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\DivideNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\EntryNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\FloatNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\GravityNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\IntNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\InvertNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\MinusNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\MultiNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\NormalizeNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\ParallelNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\PiNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\PlusNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\PowerNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\RepeatNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\SelectNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\SequenceNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\SinNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\SqrtNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\TanNode.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\Vector2Node.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\Vector3Node.cs" />
+    <Compile Include="Assets\Node Based Editor\GenericNode\Vector4Node.cs" />
+    <Compile Include="Assets\Node Based Editor\Interfaces\IBinaryLoadable.cs" />
+    <Compile Include="Assets\Node Based Editor\Interfaces\IBinarySaveable.cs" />
     <Compile Include="Assets\Node Based Editor\Node.cs" />
     <Compile Include="Assets\Node Based Editor\NodeBasedEditor.cs" />
+    <Compile Include="Assets\Node Based Editor\NodeLayoutComponent.cs" />
+    <Compile Include="Assets\Node Based Editor\Styles\CommonStyle.cs" />
+    <None Include="Assets\Node Based Editor\About\license.txt" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>E:/Work Space/Unity Projects/NodeBasedEditor/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>
